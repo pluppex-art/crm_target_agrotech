@@ -5,42 +5,30 @@ import { createClient } from "@/lib/supabase/client";
 import { can, type Resource, type Action } from "@/lib/utils/permissions";
 import type { Role } from "@/lib/utils/constants";
 import type { RolePermission } from "@/lib/supabase/types";
+import { useUserRole } from "@/components/layout/UserRoleProvider";
 
 let cachedOverrides: RolePermission[] | null = null;
 
 export function usePermission(resource: Resource, action: Action): boolean {
-  const [role, setRole] = useState<Role | null>(null);
+  const roleFromContext = useUserRole();
   const [overrides, setOverrides] = useState<RolePermission[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
 
-    async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: rawProfile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const profile = rawProfile as unknown as { role: string } | null;
-      if (profile) setRole(profile.role as Role);
-
+    async function loadOverrides() {
       if (!cachedOverrides) {
-        const { data } = await supabase.from("role_permissions").select("*");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (supabase as any).from("role_permissions").select("*");
         cachedOverrides = data ?? [];
       }
-      setOverrides(cachedOverrides);
+      setOverrides(cachedOverrides ?? []);
     }
 
-    load();
+    loadOverrides();
   }, []);
 
+  const role: Role | null = roleFromContext;
   if (!role) return false;
 
   const roleOverrides = overrides
