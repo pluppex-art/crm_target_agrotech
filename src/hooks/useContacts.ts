@@ -1,41 +1,24 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Contact } from "@/lib/supabase/types";
 
-export function useContacts() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchContacts = useCallback(async () => {
-    const supabase = createClient();
-    setIsLoading(true);
-
-    const { data, error: err } = await supabase
-      .from("contacts")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (err) {
-      setError(err.message);
-    } else {
-      setContacts(data ?? []);
-    }
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
+/**
+ * Manages contact mutations client-side.
+ * Initial data is fetched server-side and passed as `initialContacts`.
+ */
+export function useContacts(initialContacts: Contact[] = []) {
+  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
 
   const createContact = useCallback(
-    async (contact: Parameters<ReturnType<typeof createClient>["from"]> extends never ? never : Omit<Contact, "id" | "created_at" | "updated_at">) => {
+    async (contact: Omit<Contact, "id" | "created_at" | "updated_at">) => {
       const supabase = createClient();
-      const { data, error: err } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const { data, error: err } = await db
         .from("contacts")
-        .insert(contact as never)
+        .insert(contact)
         .select()
         .single();
 
@@ -50,7 +33,8 @@ export function useContacts() {
     async (id: string, updates: Partial<Contact>) => {
       const supabase = createClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: err } = await (supabase as any)
+      const db = supabase as any;
+      const { data, error: err } = await db
         .from("contacts")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id)
@@ -68,7 +52,8 @@ export function useContacts() {
 
   const deleteContact = useCallback(async (id: string) => {
     const supabase = createClient();
-    const { error: err } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: err } = await (supabase as any)
       .from("contacts")
       .delete()
       .eq("id", id);
@@ -79,9 +64,7 @@ export function useContacts() {
 
   return {
     contacts,
-    isLoading,
-    error,
-    refetch: fetchContacts,
+    setContacts,
     createContact,
     updateContact,
     deleteContact,
