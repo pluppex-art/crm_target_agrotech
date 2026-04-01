@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, LayoutGrid, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
@@ -102,13 +102,7 @@ export function CRMListClient({ initialContacts }: CRMListClientProps) {
 
   return (
     <div>
-      <PageHeader title="CRM" description="Lista de contatos">
-        <Link href="/crm">
-          <Button variant="outline" size="sm">
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Kanban
-          </Button>
-        </Link>
+      <PageHeader title="Clientes / Leads" description="Lista completa de contatos e leads">
         <PermissionGate resource="crm" action="create">
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />

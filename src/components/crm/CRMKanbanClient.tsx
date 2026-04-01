@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, List, LayoutGrid } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { KanbanBoard } from "@/components/crm/KanbanBoard";
@@ -73,17 +72,7 @@ export function CRMKanbanClient({ initialContacts }: CRMKanbanClientProps) {
   return (
     <PipelineStagesProvider>
       <div>
-        <PageHeader title="CRM" description="Gerencie seus leads e clientes">
-          <Link href="/crm/list">
-            <Button variant="outline" size="sm">
-              <List className="h-4 w-4 mr-2" />
-              Lista
-            </Button>
-          </Link>
-          <Button variant="outline" size="sm" disabled>
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Kanban
-          </Button>
+        <PageHeader title="Pipeline de Vendas" description="Funil de oportunidades por estágio">
           <PermissionGate resource="crm" action="create">
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
