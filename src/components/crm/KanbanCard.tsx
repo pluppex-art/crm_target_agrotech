@@ -2,8 +2,9 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Phone, Mail, Building2, Tag, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Phone, LayoutGrid, MoreHorizontal, Pencil, Trash2, Eye, ArrowRight, Star } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { formatBRL } from "@/lib/utils/format";
 import type { Contact } from "@/lib/supabase/types";
 import {
   DropdownMenu,
@@ -21,6 +22,47 @@ interface KanbanCardProps {
   onDelete?: (contact: Contact) => void;
 }
 
+/** Generates a stable background color from a name string. */
+function avatarColor(name: string): string {
+  const colors = [
+    "bg-blue-500",
+    "bg-purple-500",
+    "bg-green-500",
+    "bg-orange-500",
+    "bg-pink-500",
+    "bg-teal-500",
+    "bg-indigo-500",
+    "bg-rose-500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+/** Returns up to 2 uppercase initials from a full name. */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function StarRating({ value }: { value: number | null }) {
+  const stars = value ?? 0;
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={cn(
+            "h-3 w-3",
+            n <= stars ? "fill-yellow-400 text-yellow-400" : "fill-muted text-muted-foreground/40"
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function KanbanCard({ contact, onClick, onEdit, onDelete }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: contact.id });
@@ -30,7 +72,7 @@ export function KanbanCard({ contact, onClick, onEdit, onDelete }: KanbanCardPro
     transition,
   };
 
-  const tags = contact.tags ?? [];
+  const productName = contact.company || (contact.tags?.[0] ?? null);
 
   return (
     <div
@@ -39,25 +81,37 @@ export function KanbanCard({ contact, onClick, onEdit, onDelete }: KanbanCardPro
       {...attributes}
       {...listeners}
       className={cn(
-        "bg-background rounded-lg border p-3 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow",
+        "group bg-background rounded-xl border p-3 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all",
         isDragging && "opacity-50 shadow-lg"
       )}
     >
-      {/* Header: name + action menu */}
-      <div className="flex items-start justify-between gap-1 mb-1">
+      {/* Header: avatar + name + action menu */}
+      <div className="flex items-start gap-2.5 mb-2">
+        {/* Avatar */}
+        <div
+          className={cn(
+            "h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0",
+            avatarColor(contact.full_name)
+          )}
+        >
+          {initials(contact.full_name)}
+        </div>
+
+        {/* Name + phone */}
         <div
           className="flex-1 min-w-0 cursor-pointer"
           onClick={() => !isDragging && onClick?.(contact)}
         >
           <p className="text-sm font-semibold leading-tight truncate">{contact.full_name}</p>
-          {contact.company && (
+          {contact.phone && (
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-              <Building2 className="h-3 w-3 shrink-0" />
-              <span className="truncate">{contact.company}</span>
+              <Phone className="h-2.5 w-2.5 shrink-0" />
+              {contact.phone}
             </p>
           )}
         </div>
 
+        {/* Dropdown menu */}
         {(onEdit || onDelete) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -97,36 +151,47 @@ export function KanbanCard({ contact, onClick, onEdit, onDelete }: KanbanCardPro
         )}
       </div>
 
-      {/* Contact details */}
-      <div className="flex flex-col gap-0.5">
-        {contact.phone && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Phone className="h-3 w-3 shrink-0" />
-            {contact.phone}
-          </p>
-        )}
-        {contact.email && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-            <Mail className="h-3 w-3 shrink-0" />
-            <span className="truncate">{contact.email}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Tags */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs"
-            >
-              <Tag className="h-2.5 w-2.5" />
-              {tag}
-            </span>
-          ))}
+      {/* Product / service row */}
+      {productName && (
+        <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground">
+          <LayoutGrid className="h-3 w-3 shrink-0 text-primary/60" />
+          <span className="truncate">{productName}</span>
         </div>
       )}
+
+      {/* Footer: value + stars + action icons */}
+      <div className="flex items-center justify-between mt-1 pt-2 border-t border-border/50">
+        {/* Deal value */}
+        <span className="text-sm font-semibold text-foreground">
+          {contact.deal_value ? formatBRL(contact.deal_value) : "—"}
+        </span>
+
+        {/* Star rating */}
+        <StarRating value={contact.rating} />
+
+        {/* Quick actions */}
+        <div
+          className="flex items-center gap-1"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            title="Ver detalhes"
+            className="h-6 w-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            onClick={(e) => { e.stopPropagation(); onClick?.(contact); }}
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            title="Abrir contato"
+            className="h-6 w-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            onClick={(e) => { e.stopPropagation(); onEdit?.(contact); }}
+          >
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

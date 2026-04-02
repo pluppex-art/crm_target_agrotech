@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,21 +16,12 @@ import {
 } from "@/components/ui/select";
 import { PIPELINE_STAGES, CONTACT_TYPES, CONTACT_SOURCES } from "@/lib/utils/constants";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import type { Contact } from "@/lib/supabase/types";
+import { contactSchema } from "@/validators/contact.schema";
+import type { ContactFormData } from "@/validators/contact.schema";
 
-const contactSchema = z.object({
-  full_name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().optional().or(z.literal("")),
-  company: z.string().optional().or(z.literal("")),
-  cpf_cnpj: z.string().optional().or(z.literal("")),
-  type: z.enum(["lead", "prospect", "client"]),
-  pipeline_stage: z.enum(["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"]),
-  source: z.string().optional().or(z.literal("")),
-  notes: z.string().optional().or(z.literal("")),
-});
-
-export type ContactFormData = z.infer<typeof contactSchema>;
+export type { ContactFormData };
 
 interface ContactFormProps {
   defaultValues?: Partial<Contact>;
@@ -58,8 +49,12 @@ export function ContactForm({ defaultValues, onSubmit, onCancel, isLoading }: Co
       pipeline_stage: defaultValues?.pipeline_stage ?? "new",
       source: defaultValues?.source ?? "",
       notes: defaultValues?.notes ?? "",
+      deal_value: defaultValues?.deal_value ?? undefined,
+      rating: defaultValues?.rating ?? undefined,
     },
   });
+
+  const currentRating = watch("rating") ?? 0;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -73,7 +68,7 @@ export function ContactForm({ defaultValues, onSubmit, onCancel, isLoading }: Co
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="company">Empresa</Label>
+          <Label htmlFor="company">Empresa / Produto</Label>
           <Input id="company" {...register("company")} />
         </div>
 
@@ -93,6 +88,25 @@ export function ContactForm({ defaultValues, onSubmit, onCancel, isLoading }: Co
         <div className="space-y-1.5">
           <Label htmlFor="cpf_cnpj">CPF / CNPJ</Label>
           <Input id="cpf_cnpj" {...register("cpf_cnpj")} />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="deal_value">Valor da Oportunidade (R$)</Label>
+          <Input
+            id="deal_value"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0,00"
+            defaultValue={defaultValues?.deal_value ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setValue("deal_value", v === "" ? undefined : parseFloat(v));
+            }}
+          />
+          {errors.deal_value && (
+            <p className="text-xs text-destructive">{errors.deal_value.message as string}</p>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -145,6 +159,29 @@ export function ContactForm({ defaultValues, onSubmit, onCancel, isLoading }: Co
             </SelectContent>
           </Select>
         </div>
+
+        <div className="space-y-1.5">
+          <Label>Avaliação do Lead</Label>
+          <div className="flex items-center gap-1 pt-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setValue("rating", currentRating === n ? undefined : n)}
+                className="focus:outline-none"
+              >
+                <Star
+                  className={cn(
+                    "h-6 w-6 transition-colors",
+                    n <= (currentRating ?? 0)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "fill-muted text-muted-foreground/40 hover:fill-yellow-200 hover:text-yellow-300"
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="space-y-1.5">
@@ -159,7 +196,7 @@ export function ContactForm({ defaultValues, onSubmit, onCancel, isLoading }: Co
           </Button>
         )}
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</> : "Salvar"}
+          {isLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : "Salvar"}
         </Button>
       </div>
     </form>

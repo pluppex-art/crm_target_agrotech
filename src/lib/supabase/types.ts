@@ -59,6 +59,8 @@ export interface Database {
           notes: string | null;
           source: string | null;
           custom_fields: Json;
+          deal_value: number | null;
+          rating: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -83,6 +85,8 @@ export interface Database {
           notes?: string | null;
           source?: string | null;
           custom_fields?: Json;
+          deal_value?: number | null;
+          rating?: number | null;
         };
         Update: {
           full_name?: string;
@@ -104,6 +108,8 @@ export interface Database {
           notes?: string | null;
           source?: string | null;
           custom_fields?: Json;
+          deal_value?: number | null;
+          rating?: number | null;
           updated_at?: string;
         };
       };
